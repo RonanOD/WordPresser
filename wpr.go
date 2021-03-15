@@ -99,18 +99,20 @@ func oauthCall() (*http.Client, string) {
 }
 
 // Return a Sites object for a given site ID
-func getStats(id string, http_client *http.Client) (*Sites, error) {
+func getStats(id string, http_client *http.Client, token string) (*Sites, error) {
 	// HTTP call
 	url := fmt.Sprintf("https://public-api.wordpress.com/rest/v1.1/sites/%s/stats", id)
 
-	resp, err := http_client.Get(url)
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("authorization", fmt.Sprintf("Bearer %s", token))
+	res, err := http_client.Do(req)
 	if err != nil {
 		log.Fatalf("error: %s", err)
-		return nil, nil
+		return nil, err
 	}
-	defer resp.Body.Close()
+	defer res.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
+	if res.StatusCode == http.StatusOK {
 		/* How to get bytes as string.
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -120,7 +122,7 @@ func getStats(id string, http_client *http.Client) (*Sites, error) {
 		*/
 		// Decode JSON
 		sites := &Sites{}
-		dec := json.NewDecoder(resp.Body)
+		dec := json.NewDecoder(res.Body)
 		if err := dec.Decode(sites); err != nil {
 			return nil, err
 		}
@@ -148,7 +150,6 @@ func getSites(http_client *http.Client, request *http.Request, token string) (*A
 			log.Fatalf("error: %s", err)
 			return nil, err
 		}
-		fmt.Printf("%+v\n", sites)
 		return sites, nil
 	} else {
 		err = fmt.Errorf("Could not get list. HTTP Status code: %d", res.StatusCode)
@@ -156,12 +157,14 @@ func getSites(http_client *http.Client, request *http.Request, token string) (*A
 	}
 }
 
+// Main function that executes everything.
 func main() {
 	token_file := ".token"
 	var http_client *http.Client
 	var request *http.Request
 	var token string
 
+	// Set up http client. Might need to authenticate.
 	if _, err := os.Stat(token_file); os.IsNotExist(err) {
 		// initialize a client with OAuth. Drops .token for next time.
 		http_client, token = oauthCall()
@@ -175,16 +178,24 @@ func main() {
 		token = string(content)
 		http_client = &http.Client{}
 	}
-
+	// Display results
 	allSites, err := getSites(http_client, request, token)
 	if err != nil {
 		log.Fatalf("error: %s", err)
-	}
-	for i, v := range allSites.Sites {
-		fmt.Printf("%d. %s\n", i, v.URL)
-	}
+	} else {
+		for i, v := range allSites.Sites {
+			fmt.Printf("\n%d. %s\n", i+1, v.URL)
 
-	//stats, err := getStats(domain, http_client)
+			stats, err := getStats(fmt.Sprint(v.ID), http_client, token)
+			if err != nil {
+				log.Fatalf("error: %s", err)
+			} else {
+				fmt.Printf("\nToday:\t\tViews: %d\tVisitors: %d\n",
+					stats.Stats.ViewsToday, stats.Stats.VisitorsToday)
+				fmt.Printf("Yesterday:\tViews: %d\tVisitors: %d\n",
+					stats.Stats.ViewsYesterday, stats.Stats.VisitorsYesterday)
+			}
 
-	//fmt.Printf("%+v : %+v\n", domain, stats)
+		}
+	}
 }
