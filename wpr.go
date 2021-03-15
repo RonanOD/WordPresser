@@ -51,7 +51,7 @@ func goDotEnvVariable(key string) string {
 }
 
 // Make OAuth call to authorize the app.
-func oauthCall() *http.Client {
+func oauthCall() (*http.Client, string) {
 	ctx := context.Background()
 	redirect_uri := goDotEnvVariable("REDIRECT_URI")
 	conf := &oauth2.Config{
@@ -68,7 +68,12 @@ func oauthCall() *http.Client {
 	// Redirect user to consent page to ask for permission
 	// for the scopes specified above.
 	init_url := conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
-	fmt.Printf("Visit the URL for the auth dialog: %v", init_url)
+	fmt.Println("=================================================================================")
+	fmt.Println("No OAuth access token. You have to visit your wordpress site to grant permission.")
+	fmt.Println("Click on the URL below, grant permission and copy the \"code\" parameter from the")
+	fmt.Println("site address you are redirected to. Paste it into this console and hit enter.")
+	fmt.Println("=================================================================================")
+	fmt.Printf("URL: %v\n> ", init_url)
 
 	// Use the authorization code that is pushed to the redirect
 	// URL. Exchange will do the handshake to retrieve the
@@ -90,13 +95,13 @@ func oauthCall() *http.Client {
 	}
 	client := conf.Client(ctx, tok)
 
-	return client
+	return client, tok.AccessToken
 }
 
-// Return a Sites object for a given domain
-func getStats(domain string, http_client *http.Client) (*Sites, error) {
+// Return a Sites object for a given site ID
+func getStats(id string, http_client *http.Client) (*Sites, error) {
 	// HTTP call
-	url := fmt.Sprintf("https://public-api.wordpress.com/rest/v1.1/sites/%s/stats", domain)
+	url := fmt.Sprintf("https://public-api.wordpress.com/rest/v1.1/sites/%s/stats", id)
 
 	resp, err := http_client.Get(url)
 	if err != nil {
@@ -125,47 +130,61 @@ func getStats(domain string, http_client *http.Client) (*Sites, error) {
 	return nil, nil
 }
 
+// Get a list of sites to return stats for.
+func getSites(http_client *http.Client, request *http.Request, token string) (*AllSites, error) {
+	request, _ = http.NewRequest("GET", "https://public-api.wordpress.com/rest/v1/me/sites", nil)
+	request.Header.Set("authorization", fmt.Sprintf("Bearer %s", token))
+	res, err := http_client.Do(request)
+	if err != nil {
+		log.Fatalf("error: %s", err)
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusOK {
+		sites := &AllSites{}
+		dec := json.NewDecoder(res.Body)
+		if err := dec.Decode(sites); err != nil {
+			log.Fatalf("error: %s", err)
+			return nil, err
+		}
+		fmt.Printf("%+v\n", sites)
+		return sites, nil
+	} else {
+		err = fmt.Errorf("Could not get list. HTTP Status code: %d", res.StatusCode)
+		return nil, err
+	}
+}
+
 func main() {
-	domain := "poor.farm"
 	token_file := ".token"
 	var http_client *http.Client
+	var request *http.Request
+	var token string
+
 	if _, err := os.Stat(token_file); os.IsNotExist(err) {
 		// initialize a client with OAuth. Drops .token for next time.
-		http_client = oauthCall()
+		http_client, token = oauthCall()
 	} else {
 		// load a client with bearer token
 		content, err := ioutil.ReadFile(token_file)
 		if err != nil {
 			log.Fatalf("error: %s", err)
 		}
-		// Convert []byte to string and print to screen
-		token := string(content)
+		// Convert []byte to string
+		token = string(content)
 		http_client = &http.Client{}
-		req, _ := http.NewRequest("GET", "https://public-api.wordpress.com/rest/v1/me/sites", nil)
-		req.Header.Set("authorization", fmt.Sprintf("Bearer %s", token))
-		res, err := http_client.Do(req)
-		if err != nil {
-			log.Fatalf("error: %s", err)
-			return
-		}
-		defer res.Body.Close()
-
-		if res.StatusCode == http.StatusOK {
-			sites := &AllSites{}
-			dec := json.NewDecoder(res.Body)
-			if err := dec.Decode(sites); err != nil {
-				log.Fatalf("error: %s", err)
-			}
-			fmt.Printf("%+v\n", sites)
-		}
-		return
 	}
 
-	stats, err := getStats(domain, http_client)
-
+	allSites, err := getSites(http_client, request, token)
 	if err != nil {
 		log.Fatalf("error: %s", err)
 	}
+	for i, v := range allSites.Sites {
+		fmt.Printf("%d. %s\n", i, v.URL)
+	}
 
-	fmt.Printf("%+v : %+v\n", domain, stats)
+	//stats, err := getStats(domain, http_client)
+
+	//fmt.Printf("%+v : %+v\n", domain, stats)
 }
