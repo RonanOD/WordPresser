@@ -1,6 +1,14 @@
 # WordPresser
 
-Utility to query the stats of all of your WordPress sites from the command line. Drops a cache file of your OAuth2 access token. To reauthenticate, delete the `.token` file.
+Utility to query the stats of all of your WordPress sites from the command line. Needs a `.env` file with the following settings:
+
+```
+REDIRECT_URI=https://your.redirect.site
+CLIENT_ID=12345
+CLIENT_SECRET=BiGL0nGSecRetStr1ng
+```
+
+On successful authentication, program drops a cache file of your OAuth2 access token. To reauthenticate, delete the `.token` file.
 
 ## Demo
 ![WordPresser In Action](https://raw.githubusercontent.com/RonanOD/WordPresser/main/img/demo.gif)
