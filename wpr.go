@@ -1,4 +1,4 @@
-// Calling GitHub API
+// Utility to query the stats of all of your WordPress sites from the command line.
 package main
 
 import (
