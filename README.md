@@ -2,6 +2,9 @@
 
 Utility to query the stats of all of your WordPress sites from the command line. Drops a cache file of your OAuth2 access token. To reauthenticate, delete the `.token` file.
 
+## Demo
+![WordPresser In Action](https://raw.githubusercontent.com/RonanOD/WordPresser/main/img/demo.gif)
+
 ## Features:
  * OAuth2
  * File IO
