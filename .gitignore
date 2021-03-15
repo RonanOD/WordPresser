@@ -3,6 +3,7 @@
 
 # No env files
 .env
+.token
 
 # Binaries for programs and plugins
 *.exe
