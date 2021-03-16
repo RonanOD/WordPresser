@@ -158,18 +158,19 @@ func getSites(http_client *http.Client, request *http.Request, token string) (*A
 }
 
 // Print each site
-func printSite(http_client *http.Client, token string, idx int, site Site) {
-	fmt.Printf("\n%d. %s\n", idx+1, site.URL)
+func printSite(http_client *http.Client, token string, site Site, ch chan string) {
+	siteDetails := fmt.Sprintf("\n%s\n", site.URL)
 
 	stats, err := getStats(fmt.Sprint(site.ID), http_client, token)
 	if err != nil {
 		log.Fatalf("error: %s", err)
 	} else {
-		fmt.Printf("\nToday:\t\tViews: %d\tVisitors: %d\n",
+		siteDetails += fmt.Sprintf("\nToday:\t\tViews: %d\tVisitors: %d\n",
 			stats.Stats.ViewsToday, stats.Stats.VisitorsToday)
-		fmt.Printf("Yesterday:\tViews: %d\tVisitors: %d\n",
+		siteDetails += fmt.Sprintf("Yesterday:\tViews: %d\tVisitors: %d\n",
 			stats.Stats.ViewsYesterday, stats.Stats.VisitorsYesterday)
 	}
+	ch <- siteDetails
 }
 
 // Main function that executes everything.
@@ -193,13 +194,22 @@ func main() {
 		token = string(content)
 		http_client = &http.Client{}
 	}
-	// Display results
+	// Display results. Use a channel to store each separate go call
 	allSites, err := getSites(http_client, request, token)
 	if err != nil {
 		log.Fatalf("error: %s", err)
 	} else {
-		for i, v := range allSites.Sites {
-			printSite(http_client, token, i, v)
+		// Channel for storing results of each site.
+		ch := make(chan string, len(allSites.Sites))
+
+		for _, site := range allSites.Sites {
+			go printSite(http_client, token, site, ch)
 		}
+		// Print all site information
+		for range allSites.Sites {
+			line := <-ch
+			fmt.Println(line)
+		}
+		close(ch)
 	}
 }

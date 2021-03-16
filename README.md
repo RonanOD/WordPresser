@@ -14,6 +14,7 @@ On successful authentication, program drops a cache file of your OAuth2 access t
 ![WordPresser In Action](https://raw.githubusercontent.com/RonanOD/WordPresser/main/img/demo.gif)
 
 ## Features:
+ * Go Routines for parallel lookup
  * OAuth2
  * File IO
  * HTTP Calls
