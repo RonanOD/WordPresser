@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	ui "github.com/gizak/termui/v3"
+	"github.com/gizak/termui/v3/widgets"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -101,7 +103,7 @@ func oauthCall() (*http.Client, string) {
 // Return a Sites object for a given site ID
 func getStats(id string, http_client *http.Client, token string) (*Sites, error) {
 	// HTTP call
-	url := fmt.Sprintf("https://public-api.wordpress.com/rest/v1.1/sites/%s/stats", id)
+		url := fmt.Sprintf("https://public-api.wordpress.com/rest/v1.1/sites/%s/stats", id)
 
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("authorization", fmt.Sprintf("Bearer %s", token))
@@ -157,20 +159,22 @@ func getSites(http_client *http.Client, request *http.Request, token string) (*A
 	}
 }
 
-// Print each site
-func printSite(http_client *http.Client, token string, site Site, ch chan string) {
-	siteDetails := fmt.Sprintf("\n%s\n", site.URL)
 
+func lookupSiteStats(http_client *http.Client, token string, site Site, safeSiteData SafeSiteData, siteList *widgets.List, selectedBox *widgets.Paragraph) {
+	// fetch site stats from rest api
 	stats, err := getStats(fmt.Sprint(site.ID), http_client, token)
+
 	if err != nil {
 		log.Fatalf("error: %s", err)
 	} else {
-		siteDetails += fmt.Sprintf("\nToday:\t\tViews: %d\tVisitors: %d\n",
-			stats.Stats.ViewsToday, stats.Stats.VisitorsToday)
-		siteDetails += fmt.Sprintf("Yesterday:\tViews: %d\tVisitors: %d\n",
-			stats.Stats.ViewsYesterday, stats.Stats.VisitorsYesterday)
+		// populate site data map with results
+		safeSiteData.setSiteData(site.URL, stats.Stats.String())
+		//if stats are for currently selected row in list refresh ui
+		if siteList.Rows[siteList.SelectedRow] == site.URL {
+			selectedBox.Text = safeSiteData.Value(site.URL)
+			ui.Render(selectedBox)
+		}
 	}
-	ch <- siteDetails
 }
 
 // Main function that executes everything.
@@ -199,17 +203,29 @@ func main() {
 	if err != nil {
 		log.Fatalf("error: %s", err)
 	} else {
-		// Channel for storing results of each site.
-		ch := make(chan string, len(allSites.Sites))
+		if err := ui.Init(); err != nil {
+			log.Fatalf("failed to initialize termui: %v", err)
+		}
+		defer ui.Close()
+
+		safeSiteData := SafeSiteData{siteData: make(map[string]string)}
+		siteList := widgets.NewList()
+		selectedBox := widgets.NewParagraph()
+
+		//Prepopulate site data with fetching strings
+		for _, currentSite := range allSites.Sites {
+			safeSiteData.setSiteData(currentSite.URL, "Fetching Data for "+currentSite.URL)
+		}
+
+		InitUIElements(safeSiteData, siteList, selectedBox)
 
 		for _, site := range allSites.Sites {
-			go printSite(http_client, token, site, ch)
+			go lookupSiteStats(http_client, token, site, safeSiteData, siteList, selectedBox)
 		}
-		// Print all site information
-		for range allSites.Sites {
-			line := <-ch
-			fmt.Println(line)
-		}
-		close(ch)
+
+		ListenForKeyboardEvents(safeSiteData, siteList, selectedBox)
+
 	}
 }
+
+
