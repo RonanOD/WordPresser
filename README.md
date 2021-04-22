@@ -11,7 +11,7 @@ CLIENT_SECRET=BiGL0nGSecRetStr1ng
 On successful authentication, program drops a cache file of your OAuth2 access token. To reauthenticate, delete the `.token` file.
 
 ## Demo
-![WordPresser In Action](https://raw.githubusercontent.com/RonanOD/WordPresser/main/img/demo.gif)
+![WordPresser In Action](https://raw.githubusercontent.com/RonanOD/WordPresser/main/img/screenshot.jpeg)
 
 ## Features:
  * Go Routines for parallel lookup
