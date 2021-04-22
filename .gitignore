@@ -22,3 +22,6 @@
 
 # VS Code stuff
 .vscode/
+
+# Jetbrains IDEA stuff
+.idea/
