@@ -164,7 +164,8 @@ func getSites(http_client *http.Client, request *http.Request, token string) (*A
 }
 
 
-func lookupSiteStats(http_client *http.Client, token string, site Site, safeSiteData *SafeSiteData, siteList *widgets.List, selectedBox *widgets.Paragraph) {
+func lookupSiteStats(http_client *http.Client, token string, site Site, safeSiteData *SafeSiteData,
+						siteList *widgets.List, selectedBox *widgets.Paragraph, barChart *widgets.BarChart) {
 	// fetch site stats from rest api
 	stats, err := getStats(fmt.Sprint(site.ID), http_client, token)
 
@@ -172,11 +173,24 @@ func lookupSiteStats(http_client *http.Client, token string, site Site, safeSite
 		log.Fatalf("error: %s", err)
 	} else {
 		// populate site data map with results
-		safeSiteData.setSiteData(site.URL, stats.Stats.String())
+		data := SiteDataModel{}
+		data.description = stats.Stats.String()
+		data.views = ExtractFloatArrayFromStats(stats.Visits.Data)
+		safeSiteData.setSiteData(site.URL, data)
+
 		//if stats are for currently selected row in list refresh ui
 		if siteList.Rows[siteList.SelectedRow] == site.URL {
-			selectedBox.Text = safeSiteData.Value(site.URL)
+			data := safeSiteData.Value(siteList.Rows[siteList.SelectedRow])
+			selectedBox.Text = data.description
+
+			views := data.views[len(data.views)-20:]
+			if !IsAllZeros(views) {
+				barChart.Data = views
+			}
+
 			ui.Render(selectedBox)
+			ui.Render(siteList)
+			ui.Render(barChart)
 		}
 	}
 }
@@ -212,22 +226,24 @@ func main() {
 		}
 		defer ui.Close()
 
-		safeSiteData := SafeSiteData{siteData: make(map[string]string)}
+		safeSiteData := SafeSiteData{siteData: make(map[string]SiteDataModel)}
 		siteList := widgets.NewList()
 		selectedBox := widgets.NewParagraph()
+		barChart :=  widgets.NewBarChart()
 
 		//Prepopulate site data with fetching strings
 		for _, currentSite := range allSites.Sites {
-			safeSiteData.setSiteData(currentSite.URL, "Fetching Data for "+currentSite.URL)
+			blankSiteData := SiteDataModel{description: "Fetching Data for " + currentSite.URL, views: make([]float64, 20)}
+			safeSiteData.setSiteData(currentSite.URL, blankSiteData)
 		}
 
-		InitUIElements(&safeSiteData, siteList, selectedBox)
+		InitUIElements(&safeSiteData, siteList, selectedBox, barChart)
 
 		for _, site := range allSites.Sites {
-			go lookupSiteStats(http_client, token, site, &safeSiteData, siteList, selectedBox)
+			go lookupSiteStats(http_client, token, site, &safeSiteData, siteList, selectedBox, barChart)
 		}
 
-		ListenForKeyboardEvents(&safeSiteData, siteList, selectedBox)
+		ListenForKeyboardEvents(&safeSiteData, siteList, selectedBox, barChart)
 
 	}
 }
