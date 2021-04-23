@@ -17,10 +17,10 @@ import (
 )
 
 // Sites represents all user sites.
-// TODO: Add visits struct for graphing: https://github.com/gizak/termui
 type Sites struct {
-	Date  string `json:"date"`
-	Stats Stat   `json:"stats"`
+	Date  	string 	`json:"date"`
+	Stats 	Stat   	`json:"stats"`
+	Visits 	Visit	`json:"visits"`
 }
 
 // Stat object for a given site.
@@ -29,6 +29,10 @@ type Stat struct {
 	VisitorsYesterday int `json:"visitors_yesterday"`
 	ViewsToday        int `json:"views_today"`
 	ViewsYesterday    int `json:"views_yesterday"`
+}
+
+type Visit struct {
+	Data [][3]interface{} `json:"data"`
 }
 
 // Global list of sites
@@ -160,7 +164,7 @@ func getSites(http_client *http.Client, request *http.Request, token string) (*A
 }
 
 
-func lookupSiteStats(http_client *http.Client, token string, site Site, safeSiteData SafeSiteData, siteList *widgets.List, selectedBox *widgets.Paragraph) {
+func lookupSiteStats(http_client *http.Client, token string, site Site, safeSiteData *SafeSiteData, siteList *widgets.List, selectedBox *widgets.Paragraph) {
 	// fetch site stats from rest api
 	stats, err := getStats(fmt.Sprint(site.ID), http_client, token)
 
@@ -217,13 +221,13 @@ func main() {
 			safeSiteData.setSiteData(currentSite.URL, "Fetching Data for "+currentSite.URL)
 		}
 
-		InitUIElements(safeSiteData, siteList, selectedBox)
+		InitUIElements(&safeSiteData, siteList, selectedBox)
 
 		for _, site := range allSites.Sites {
-			go lookupSiteStats(http_client, token, site, safeSiteData, siteList, selectedBox)
+			go lookupSiteStats(http_client, token, site, &safeSiteData, siteList, selectedBox)
 		}
 
-		ListenForKeyboardEvents(safeSiteData, siteList, selectedBox)
+		ListenForKeyboardEvents(&safeSiteData, siteList, selectedBox)
 
 	}
 }

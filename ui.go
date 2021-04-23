@@ -58,7 +58,7 @@ func (stat Stat) String() string {
 }
 
 // InitUIElements populate initial state of ui
-func InitUIElements(safeSiteData SafeSiteData, siteList *widgets.List, selectedBox *widgets.Paragraph) {
+func InitUIElements(safeSiteData *SafeSiteData, siteList *widgets.List, selectedBox *widgets.Paragraph) {
 	titleBox := widgets.NewParagraph()
 	titleBox.Title = "WordPresser"
 	titleBox.Text = "Press up/down keys to scroll list, esc to exit."
@@ -85,7 +85,7 @@ func InitUIElements(safeSiteData SafeSiteData, siteList *widgets.List, selectedB
 }
 
 // ListenForKeyboardEvents handle keyboard events
-func ListenForKeyboardEvents(safeSiteData SafeSiteData, siteList *widgets.List, selectedBox *widgets.Paragraph) {
+func ListenForKeyboardEvents(safeSiteData *SafeSiteData, siteList *widgets.List, selectedBox *widgets.Paragraph) {
 	uiEvents := ui.PollEvents()
 	for {
 		e := <-uiEvents
