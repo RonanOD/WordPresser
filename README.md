@@ -20,10 +20,9 @@ On successful authentication, program drops a cache file of your OAuth2 access t
  * HTTP Calls
  * JSON and REST handling
    * [WordPress API Docs](https://developer.wordpress.com/docs/api/)
+ * Displays graphs and has interactive UI via [termui](https://github.com/gizak/termui)
 
 
 ## Needs:
  * Oauth2 Authentication set up. Follow details [here](https://developer.wordpress.com/docs/oauth2/)
 
-## TODO:
- * Add visits struct for [graphing](https://github.com/gizak/termui)
