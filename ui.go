@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
-	ui "github.com/gizak/termui/v3"
-	"github.com/gizak/termui/v3/widgets"
 	"log"
 	"sort"
 	"sync"
+
+	ui "github.com/gizak/termui/v3"
+	"github.com/gizak/termui/v3/widgets"
 )
 
 // SafeSiteData Map of Urls Strings to SiteDataModel with mutex for thread safety
 type SafeSiteData struct {
-	mu sync.Mutex
-	siteData  map[string]SiteDataModel
+	mu       sync.Mutex
+	siteData map[string]SiteDataModel
 }
 
 type SiteDataModel struct {
@@ -96,14 +97,14 @@ func ExtractFloatArrayFromStats(stats [][3]interface{}) []float64 {
 
 // InitUIElements populate initial state of ui
 func InitUIElements(safeSiteData *SafeSiteData, siteList *widgets.List, selectedBox *widgets.Paragraph, barChart *widgets.BarChart) {
+	const accentColour = ui.ColorBlue
 	titleBox := widgets.NewParagraph()
 	titleBox.Title = "WordPresser"
 	titleBox.Text = "Press up/down keys to scroll list, esc to exit."
 	titleBox.SetRect(0, 0, 85, 3)
-	titleBox.BorderStyle.Fg = ui.ColorCyan
+	titleBox.BorderStyle.Fg = accentColour
 
 	ui.Render(titleBox)
-
 
 	siteList.Title = "List"
 	siteList.Rows = safeSiteData.urls()
@@ -121,7 +122,7 @@ func InitUIElements(safeSiteData *SafeSiteData, siteList *widgets.List, selected
 	barChart.Title = "Views last 20 days"
 	barChart.SetRect(0, 13, 85, 23)
 	barChart.BarWidth = 3
-	barChart.BarColors = []ui.Color{ui.ColorCyan}
+	barChart.BarColors = []ui.Color{accentColour}
 	barChart.LabelStyles = []ui.Style{ui.NewStyle(ui.ColorBlue)}
 	barChart.NumStyles = []ui.Style{ui.NewStyle(ui.ColorWhite)}
 
@@ -130,7 +131,7 @@ func InitUIElements(safeSiteData *SafeSiteData, siteList *widgets.List, selected
 
 // ListenForKeyboardEvents handle keyboard events
 func ListenForKeyboardEvents(safeSiteData *SafeSiteData, siteList *widgets.List,
-								selectedBox *widgets.Paragraph, barChart *widgets.BarChart) {
+	selectedBox *widgets.Paragraph, barChart *widgets.BarChart) {
 	uiEvents := ui.PollEvents()
 	for {
 		e := <-uiEvents
@@ -156,6 +157,3 @@ func ListenForKeyboardEvents(safeSiteData *SafeSiteData, siteList *widgets.List,
 
 	}
 }
-
-
-
